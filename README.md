@@ -1,7 +1,7 @@
 # Expand RPG Maker Autotile Tileset
 This Tiled script adds an option to the Tileset menu to expand an RPG Maker autotile tileset, for easier use as Terrains in Tiled. It outputs a map, which you can then export as an image to use in a tileset, or save to use as the direct source of a Metatileset (if you set a Tiled Map as the source "image" of a Tileset, the map will be used as an image. This feature is not widely supported in parsers yet since it's not documented, but it's very useful for avoiding the need to save an expanded tileset as a large image).
 
-Because this script relies on outputting a map from the script to the editor, it requires **Tiled 1.8 RC or newer**.
+Because this script relies on outputting a map from the script to the editor, it requires **Tiled 1.8 or newer**.
 
 This script is based on devium's Python script that expands RPG Maker tileset images: <https://github.com/devium/tiled-autotile>. The resulting tilesets for A1, A2, A3, and A4 have the same layouts and should be compatible.
 
