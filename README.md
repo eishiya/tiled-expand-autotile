@@ -14,6 +14,8 @@ When your tileset is ready, click Tileset > Expand RPG Maker Tileset to Blob and
 
 You will end up with a Tiled Map open in the editor, which contains your expanded tileset. You can export it as an image and then close the map, or you can save the map to use as a tileset image directly.
 
+If you save it as a map and create a metatileset by using the map as the source "image" of the new tileset, you can use my [Terrain import script](https://github.com/eishiya/tiled-scripts/blob/main/ImportMetatileTerrains.js) to copy terrains from the original RPG Maker tileset to the expanded tileset, which would save you time in labelling the tiles. You can swap out the map "image" for a regular image after this if you like, and still keep the imported terrains.
+
 ## Limitations
 The script can currently only expand tilesets that have the exact A1, A2, A3, and A4 layouts, it will not expand any tilesets that are larger or smaller than these. The vast majority of RPG Maker autotile tilesets fit one of these layouts, so this is not likely to be a problem. However, newer versions of RPG Maker support smaller layouts and RPG Maker XP supports larger layouts, so I may look into supporting this if it's needed.
 
@@ -21,4 +23,3 @@ This script will produce 1x1 (2x2 minitiles) "island" tiles of the various groun
 
 ## TODO
 - Currently, the script expands ground autotiles into 47-tile "blob" tilesets, which are versatile, but may be more than what's needed for a particular tileset or game. I'd like to add an option to expand into 16-tile corner-style tilesets instead, which may be a better fit for some games.
-- I would eventually like to write a script that takes a metatileset and automatically assigns terrain data to it based on the source tileset, which would allow you to define terrains on the original tileset and have them automatically applied to the expanded tileset, instead of defining them manually on the much larger expanded tileset. Since this is something useful beyond just RPG Maker tilesets, it'll be a separate script, but if I ever write it (or if someone else does), I'll link to it here.
