@@ -1,37 +1,157 @@
-/* 	Expand RPG Maker Tileset by eishiya, last updated 31 Jan 2022
+/* 	Expand RPG Maker Tileset by eishiya, last updated 17 Jan 2024
 
-	Adds an action to the Tileset menu that expands an RPG Maker autotile
-	tileset into one usable by Tiled. Rather than generating a new tileset
-	directly, it instead creates a Map with all the subtiles arranged into
-	tiles. You can then either export this Map as an image to use as a new
-	tileset, or you can save and use the Map directly as a tileset image,
-	whichever better suits your workflow.
+	Adds an action to the File menu that lets you create a new tileset from
+	an RPG Maker tileset image.
+	
+	When running this action, you will be prompted for your image file,
+	the tile size, and a name for the tileset. Then, the script will generate
+	an expanded version of the tileset either as a TMX or as an image, and
+	finally it will prompt you for a location to save the final tileset.
 	
 	When you use the action, the script will attempt to automatically identify
-	which autotile layout (A1, A2, A3, A4) the tileset uses based on its size.
+	which autotile layout (A1, A2, A3, A4) based on the size of the tileset.
 	A1 and A2 have the same size, so you may be asked to select which one it is,
 	while A3 and A4 should be automatically identified.
 	The other RPG Maker tileset types do not utilize subtiles, so you don't
-	need to run this script on them, and this script does not support them.
+	need to run this script on them, and this script does not support them. You
+	can use standard Tileset creation for those.
 	
 	The subtile -> tile mappings are from devium's Python script, so tilesets
 	generated with either of these scripts should be compatible.
 	https://github.com/devium/tiled-autotile
 	
 	This script assumes margins and spacing of 0, as is typical for RPG Maker
-	tilesets. It may produce garbage results in other scenarios.
+	tilesets. It may produce incorrect results in other scenarios.
 	
-	TODO: Add a second action to expand the tileset into a corner-based terrain
+	TODO: Add an option to expand the tileset into a corner-based terrain
 	instead of to blob, with the layout matching fmoo's unpacker.
+	TODO: Automatically create Terrains for the tileset.
+	
+	Requires Tiled 1.10.2+.
+	This script saves your preferences for the dialog with your Project, using
+	the "ExpandRPGMTileset" prefix. You can opt out of saving preferences
+	by setting useProject below to false.
+	If no Project is open, preferences will not be saved.
 */
 
 var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
-	if(!tiled.activeAsset || !tiled.activeAsset.isTileset || tiled.activeAsset.isCollection) {
-		tiled.alert("The active asset must be a single-image Tileset to expand.");
+	// ============================= CONFIGURATION =============================
+	let useProject = true; //set to false if you don't want to save your preferences to your Project.
+	// =========================================================================
+	
+	if(!tiled.project || !tiled.versionLessThan || tiled.versionLessThan("1.10.2"))
+		useProject = false;
+	let project = useProject? tiled.project : null;
+	
+	let dialog = new Dialog("New RPG Maker Tileset...");
+	dialog.newRowMode = Dialog.ManualRows;
+	dialog.minimumWidth = 200;
+	dialog.addHeading("Tileset", true);
+	let nameInput = dialog.addTextInput("Name:");
+	let name = "";
+	nameInput.editingFinished.connect(function() {name = nameInput.text;});
+	dialog.addHeading("Image", true);
+	let sourceInput = dialog.addFilePicker("Source:");
+	sourceInput.filter = "Images (*.png *.xpm *.jpeg *.jpg *.bmp *.gif *.qoi *.svg *.cur *.webp)";
+	dialog.addNewRow();
+	dialog.addLabel("")
+	let useColorInput = dialog.addCheckBox("Use transparent color:", false);
+	let useColor = false;
+	useColorInput.stateChanged.connect(function() {useColor = useColorInput.checked});
+	if(project && project.property("ExpandRPGMTileset_UseTransparentColor") > 0)
+		useColorInput.checked = project.property("ExpandRPGMTileset_UseTransparentColor");
+	let colorInput = dialog.addColorButton();
+	let color = "";
+	colorInput.colorChanged.connect(function(newColor) {color = newColor});
+	if(project && project.property("ExpandRPGMTileset_TransparentColor") > 0)
+		colorInput.color = project.property("ExpandRPGMTileset_TransparentColor");
+	dialog.addNewRow();
+	/*let typeInput = dialog.addComboBox("Layout:", ["Auto", "A1", "A2", "A3", "A4"]);
+	let layoutType = 0;
+	typeInput.currentIndexChanged.connect(function() {
+		let index = typeInput.currentIndex;
+		layoutType = index;
+	});
+	if(project && project.property("ExpandRPGMTileset_Layout"))
+		layoutType.currentIndex = project.property("ExpandRPGMTileset_Layout");
+	dialog.addLabel("");
+	dialog.addNewRow();*/
+	let tileWidthInput = dialog.addNumberInput("Tile width:");
+	tileWidthInput.decimals = 0;
+	tileWidthInput.minimum = 1;
+	let tileWidth = 1;
+	tileWidthInput.valueChanged.connect(function(number) {tileWidth = number});
+	if(project && project.property("ExpandRPGMTileset_TileWidth") > 0)
+		tileWidthInput.value = project.property("ExpandRPGMTileset_TileWidth");
+	dialog.addLabel("px");
+	dialog.addNewRow();
+	let tileHeightInput = dialog.addNumberInput("Tile height:");
+	tileHeightInput.decimals = 0;
+	tileHeightInput.minimum = 1;
+	let tileHeight = 1;
+	tileHeightInput.valueChanged.connect(function(number) {tileHeight = number});
+	if(project && project.property("ExpandRPGMTileset_TileHeight") > 0)
+		tileHeightInput.value = project.property("ExpandRPGMTileset_TileHeight");
+	dialog.addLabel("px");
+	dialog.addNewRow();
+	//dialog.addLabel("Save intermediate as:");
+	let intermediateInput = dialog.addComboBox("Save intermediate as:", ["TileMap", "Image"]);
+	intermediateInput.toolTip = 'Saving as a TileMap will save space and be more flexible than saving as an image, but not all engines support Tilemaps. You can replace the TileMap with an image later.';
+	intermediateFormat = 0;
+	intermediateInput.currentIndexChanged.connect(function() {
+		let index = intermediateInput.currentIndex;
+		intermediateFormat = index;
+	});
+	if(project && project.property("ExpandRPGMTileset_IntermediateFormat"))
+		intermediateInput.currentIndex = project.property("ExpandRPGMTileset_IntermediateFormat");
+	dialog.addNewRow();
+	let confirmButton = dialog.addButton("Save As...");
+	confirmButton.enabled = false;
+	confirmButton.clicked.connect(function() {dialog.accept();});
+	let source = "";
+	sourceInput.fileUrlChanged.connect(function(url) {
+		source = url.toString().replace(/^file:\/+/, '');
+		if(!url || !File.exists(source))
+			confirmButton.enabled = false;
+		else
+			confirmButton.enabled = true;
+	});
+	let cancelButton = dialog.addButton("Cancel");
+	cancelButton.clicked.connect(function() {dialog.reject();});
+	let confirmed = dialog.exec();
+	if(!confirmed) return;
+	
+	if(!File.exists(source)) {
+		tiled.warn("Non-existent file chosen: "+source+". Tileset will not be created.");
 		return;
 	}
+	//let sourceImage = new Image(source);
+	//let imageWidth = sourceImage.width;
+	//let imageHeight = sourceImage.height;
 	
-	let tileset = tiled.activeAsset;
+	//Save properties:
+	if(project) {
+		project.setProperty("ExpandRPGMTileset_TileWidth", tileWidth);
+		project.setProperty("ExpandRPGMTileset_TileHeight", tileHeight);
+		//project.setProperty("ExpandRPGMTileset_Layout", layoutType);
+		project.setProperty("ExpandRPGMTileset_IntermediateFormat", intermediateFormat);
+		project.setProperty("ExpandRPGMTileset_UseTransparentColor", useColor);
+		if(color != "")
+			project.setColorProperty("ExpandRPGMTileset_TransparentColor", color);
+	}
+	
+	if(!name || name == "") {
+		name = FileInfo.baseName(source);
+	}
+	
+	//Create the intermediate tileset:
+	let tileset = new Tileset(name + " Subtiles");
+	tileset.tileWidth = Math.floor(tileWidth/2);
+	tileset.tileHeight = Math.floor(tileHeight/2);
+	if(useColor && color) {
+		tileset.transparencyColor = color;
+	}
+	tileset.image = source;	
 	
 	//Get this tileset's size:
 	let tilesetWidth = Math.floor(tileset.imageWidth / tileset.tileWidth);
@@ -41,14 +161,16 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 		if(!allow) return;
 	}
 	
-	if(tilesetWidth == 16 || tilesetHeight == 12 || tilesetHeight == 8 || tilesetHeight == 15) {
+	//Auto-correcting the tileset size is not necessary, since we generated the tileset.
+	/*if(tilesetWidth == 16 || tilesetHeight == 12 || tilesetHeight == 8 || tilesetHeight == 15) {
 		let fixTilesize = tiled.confirm("This tileset appears to have its tile size set to the full tile size rather than the subtile size, so there are not enough tiles to continue. Would you like the script to attempt to adjust the tile size automatically?");
 		if(fixTilesize) {
 			tileset.setTileSize(tileset.tileWidth/2, tileset.tileHeight/2);
 			tilesetWidth = Math.floor(tileset.imageWidth / tileset.tileWidth);
 			tilesetHeight = Math.floor(tileset.imageHeight / tileset.tileHeight);
 		} else return;
-	}
+	}*/
+	
 	//A1: Animated tiles, 16x12 tiles (32 x 24 subtiles)
 	//A2: Ground tiles, 16x12 tiles (32x24 subtiles)
 	//A3: Building tiles, 16x8 tiles (32x16 subtiles)
@@ -281,11 +403,57 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 		newLayerEdit.apply();
 		map.addLayer(newLayer);
 	});
-	tiled.activeAsset = map;
+	//tiled.activeAsset = map;
+	//Save this map to the file's location.
+	let fileSuffix = ".tmx";
+	if(intermediateFormat == 1)
+		fileSuffix = "_expanded.png";
+	let path = FileInfo.path(source) + "/" + FileInfo.baseName(source) + fileSuffix;
+	if(File.exists(path)) {
+		if(!tiled.confirm("File "+path+" already exists. Would you like to overwrite it? If No, tileset creation will be aborted."))
+			return;
+	}
+	if(intermediateFormat == 0) { //TileMap
+		let tmxWriter = tiled.mapFormat("tmx");
+		let error = tmxWriter.write(map, path);
+		if(error && error != "") {
+			tiled.error("Failed to write intermediate TMX file "+path+", RPG Maker metatileset creation aborted. Reported error:\n"+error);
+			return;
+		}
+	} else if(intermediateFormat == 1) { //Image
+		let mapImage = map.toImage();
+		let saved = mapImage.save(path);
+		if(!saved) {
+			tiled.error("Failed to write intermediate image file "+path+", RPG Maker tileset creation aborted.");
+			return;
+		}
+	} else
+		return;
+	
+	//Create the final tileset:
+	let newTileset = new Tileset(name);
+	newTileset.tileWidth = tileWidth;
+	newTileset.tileHeight = tileHeight;
+	if(useColor && color) {
+		newTileset.transparencyColor = color;
+	}
+	newTileset.image = path;
+	
+	//tiled.activeAsset = newTileset;
+	let saveLocation = tiled.promptSaveFile(FileInfo.path(source), "Tiled Tileset files (*.tsx *.xml);;JSON Tileset files (*.tsj *.json)", "Save Tileset As");
+	if(saveLocation && saveLocation != "") {
+		let format = tiled.tilesetFormatForFile(saveLocation);
+		if(!format) {
+			tiled.warn("Could not find valid Tileset format for"+FileInfo.fileName(saveLocation)+", saving in TSX format.");
+			format = tiled.tilesetFormat("tsx");
+		}
+		format.write(newTileset, saveLocation);
+		tiled.open(saveLocation);
+	} //else, the user cancelled. Do nothing.
 });
-expandRPGM.text = "Expand RPG Maker Tileset to Blob";
+expandRPGM.text = "New RPG Maker Tileset...";
 
-tiled.extendMenu("Tileset", [
-    { action: "ExpandRPGMTileset", before: "TilesetProperties" },
-	{separator: true}
+tiled.extendMenu("File", [
+	{ action: "ExpandRPGMTileset", before: "Save" },
+	{ separator: true }
 ]);
