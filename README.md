@@ -1,20 +1,16 @@
 # Expand RPG Maker Autotile Tileset
-This Tiled script adds an option to the Tileset menu to expand an RPG Maker autotile tileset, for easier use as Terrains in Tiled. It outputs a map, which you can then export as an image to use in a tileset, or save to use as the direct source of a Metatileset (if you set a Tiled Map as the source "image" of a Tileset, the map will be used as an image. This feature is not widely supported in parsers yet since it's not documented, but it's very useful for avoiding the need to save an expanded tileset as a large image).
+This Tiled script adds an option to the File menu to create a Tiled Tileset from an RPG Maker tileset image, expanding it for easier use in Tiled. It saves the expanded tileset as an image or as a TileMap TMX, and then uses that as the source image for a Tileset. The resulting Tileset is usable just like any other Tileset in Tiled.
 
-Because this script relies on outputting a map from the script to the editor, it requires **Tiled 1.8 or newer**.
+Because this script needs to prompt the user for file locations, it requires **Tiled 1.10.2 or newer**.
 
 This script is based on devium's Python script that expands RPG Maker tileset images: <https://github.com/devium/tiled-autotile>. The resulting tilesets for A1, A2, A3, and A4 have the same layouts and should be compatible.
 
 ## Using this script
 If you don't know how to run scripts in Tiled, please see the [Tiled documentation on Scripting](https://doc.mapeditor.org/en/stable/reference/scripting/).
 
-To use this script, create a tileset in Tiled from your RPG Maker tileset image, but set the tile size to *half* the size of the tiles, so that each tile in the tileset corresponds to a minitile. So, if your tileset has 48px tiles, set the tile size to 24px. In some cases, the script can detect that you've set the size to the full tile size and will offer to correct this, but this will mess up any terrains you had and any maps already using the tileset, so it's recommended to set the tile size correctly yourself.
+To create a new tileset from an RPG Maker tileset image, go to `File > New RPG Maker Tileset...`. This will open a dialog that works similarly to the regular New Tileset dialog. You can enter your tileset name, the image file to use, (optionally) the transparency colour, tile size, and whether to save the intermediate expanded version of the tileset as a TileMap (TMX) or an image (PNG). After that, you'll be prompted for where to save the resulting Tileset file, and after that, the final Tileset will be open in Tiled.
 
-When your tileset is ready, click Tileset > Expand RPG Maker Tileset to Blob and follow any prompts. The script can automatically detect A3 and A4 tilesets and should not give any prompts. It can't distinguish between A1 and A2, so it'll ask you which type your tileset is if it detects one of those.
-
-You will end up with a Tiled Map open in the editor, which contains your expanded tileset. You can export it as an image and then close the map, or you can save the map to use as a tileset image directly.
-
-If you save it as a map file, create a new tileset with the map file as its source Image, you can make a metatileset, which will allow you to use my [Terrain import script](https://github.com/eishiya/tiled-scripts/blob/main/ImportMetatileTerrains.js) to copy terrains from the original RPG Maker tileset to the expanded tileset, which would save you time in labelling the tiles. You can swap out the map "image" for a regular image after this if you like, and still keep the imported terrains.
+If you choose to save the intermediate as a TileMap, the resulting Tileset will use that map as its source, making it a "metatileset". This allows you to rearrange the tiles easily and for changes to the original image to propagate to the expanded version, and the resulting file is smaller. However, Tiled metatilesets are not widely supported in parsers yet. You can, however, always replace the source Tilemap with an image later. You can open the TileMap in Tiled, Export as Image, and then change the source in the Tileset to that image. So, don't be afraid to try out using an intermediate Tilemap instead of an image :D
 
 ## Limitations
 The script can currently only expand tilesets that have the exact A1, A2, A3, and A4 layouts, it will not expand any tilesets that are larger or smaller than these. The vast majority of RPG Maker autotile tilesets fit one of these layouts, so this is not likely to be a problem. However, newer versions of RPG Maker support smaller layouts and RPG Maker XP supports larger layouts, so I may look into supporting this if it's needed.
@@ -23,3 +19,4 @@ This script will produce 1x1 (2x2 minitiles) "island" tiles of the various groun
 
 ## TODO
 - Currently, the script expands ground autotiles into 47-tile "blob" tilesets, which are versatile, but may be more than what's needed for a particular tileset or game. I'd like to add an option to expand into 16-tile corner-style tilesets instead, which may be a better fit for some games.
+- Automatically generate default terrains. These won't always be optimal, but they would save a lot of work in typical scenarios.
