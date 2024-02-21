@@ -1,4 +1,4 @@
-/* 	Expand RPG Maker Tileset by eishiya, last updated 17 Jan 2024
+/* 	Expand RPG Maker Tileset by eishiya, last updated 21 Feb 2024
 
 	Adds an action to the File menu that lets you create a new tileset from
 	an RPG Maker tileset image.
@@ -110,7 +110,7 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	confirmButton.clicked.connect(function() {dialog.accept();});
 	let source = "";
 	sourceInput.fileUrlChanged.connect(function(url) {
-		source = url.toString().replace(/^file:\/+/, '');
+		source = url.toString().replace(/^file:\/+/, (tiled.platform == 'windows')? '' : '/');
 		if(!url || !File.exists(source))
 			confirmButton.enabled = false;
 		else
@@ -151,7 +151,10 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	if(useColor && color) {
 		tileset.transparencyColor = color;
 	}
-	tileset.image = source;	
+	if(!tiled.versionLessThan || tiled.versionLessThan("1.10.3"))
+		tileset.image = source;	
+	else
+		tileset.imageFileName = source;
 	
 	//Get this tileset's size:
 	let tilesetWidth = Math.floor(tileset.imageWidth / tileset.tileWidth);
@@ -437,7 +440,10 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	if(useColor && color) {
 		newTileset.transparencyColor = color;
 	}
-	newTileset.image = path;
+	if(!tiled.versionLessThan || tiled.versionLessThan("1.10.3"))
+		newTileset.image = path;
+	else
+		newTileset.imageFileName = path;
 	
 	//tiled.activeAsset = newTileset;
 	let saveLocation = tiled.promptSaveFile(FileInfo.path(source), "Tiled Tileset files (*.tsx *.xml);;JSON Tileset files (*.tsj *.json)", "Save Tileset As");
