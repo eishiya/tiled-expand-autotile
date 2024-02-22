@@ -1,4 +1,4 @@
-/* 	Expand RPG Maker Tileset by eishiya, last updated 21 Feb 2024
+/* 	Expand RPG Maker Tileset by eishiya, last updated 22 Feb 2024
 
 	Adds an action to the File menu that lets you create a new tileset from
 	an RPG Maker tileset image.
@@ -110,7 +110,7 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	confirmButton.clicked.connect(function() {dialog.accept();});
 	let source = "";
 	sourceInput.fileUrlChanged.connect(function(url) {
-		source = url.toString().replace(/^file:\/+/, (tiled.platform == 'windows')? '' : '/');
+		source = url.toString().replace(/^file:\/{2}/, '');
 		if(!url || !File.exists(source))
 			confirmButton.enabled = false;
 		else
