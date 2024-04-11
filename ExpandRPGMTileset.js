@@ -1,4 +1,4 @@
-/* 	Expand RPG Maker Tileset by eishiya, last updated 22 Feb 2024
+/* 	Expand RPG Maker Tileset by eishiya, last updated 11 Apr 2024
 
 	Adds an action to the File menu that lets you create a new tileset from
 	an RPG Maker tileset image.
@@ -54,7 +54,7 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	let sourceInput = dialog.addFilePicker("Source:");
 	sourceInput.filter = "Images (*.png *.xpm *.jpeg *.jpg *.bmp *.gif *.qoi *.svg *.cur *.webp)";
 	dialog.addNewRow();
-	dialog.addLabel("")
+	dialog.addLabel("");
 	let useColorInput = dialog.addCheckBox("Use transparent color:", false);
 	let useColor = false;
 	useColorInput.stateChanged.connect(function() {useColor = useColorInput.checked});
@@ -94,7 +94,6 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 		tileHeightInput.value = project.property("ExpandRPGMTileset_TileHeight");
 	dialog.addLabel("px");
 	dialog.addNewRow();
-	//dialog.addLabel("Save intermediate as:");
 	let intermediateInput = dialog.addComboBox("Save intermediate as:", ["TileMap", "Image"]);
 	intermediateInput.toolTip = 'Saving as a TileMap will save space and be more flexible than saving as an image, but not all engines support Tilemaps. You can replace the TileMap with an image later.';
 	intermediateFormat = 0;
@@ -110,7 +109,10 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	confirmButton.clicked.connect(function() {dialog.accept();});
 	let source = "";
 	sourceInput.fileUrlChanged.connect(function(url) {
-		source = url.toString().replace(/^file:\/{2}/, '');
+		if(!tiled.versionLessThan || tiled.versionLessThan("1.11.0"))
+			source = url.toString().replace(/^file:\/{3}/, (tiled.platform == 'windows')? '' : '/');
+		else
+			source = sourceInput.fileName;
 		if(!url || !File.exists(source))
 			confirmButton.enabled = false;
 		else
@@ -151,7 +153,7 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	if(useColor && color) {
 		tileset.transparencyColor = color;
 	}
-	if(!tiled.versionLessThan || tiled.versionLessThan("1.10.3"))
+	if(!tiled.versionLessThan || tiled.versionLessThan("1.11.0"))
 		tileset.image = source;	
 	else
 		tileset.imageFileName = source;
@@ -440,7 +442,7 @@ var expandRPGM = tiled.registerAction("ExpandRPGMTileset", function(action) {
 	if(useColor && color) {
 		newTileset.transparencyColor = color;
 	}
-	if(!tiled.versionLessThan || tiled.versionLessThan("1.10.3"))
+	if(!tiled.versionLessThan || tiled.versionLessThan("1.11.0"))
 		newTileset.image = path;
 	else
 		newTileset.imageFileName = path;
